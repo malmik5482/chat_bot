@@ -163,6 +163,9 @@ app.use(bodyParser.json());
 // Session middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // Configure session store: prefer MongoDB when MONGO_URL is set, otherwise
 // fall back to the default MemoryStore with a clear warning for production.
+const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
+
+// Session store configuration
 if (process.env.MONGO_URL) {
   app.use(
     session({
@@ -176,7 +179,9 @@ if (process.env.MONGO_URL) {
       cookie: {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        // Use explicit env var to control secure cookie behavior. Default false
+        // to avoid cookies being dropped on HTTP during testing.
+        secure: COOKIE_SECURE,
       },
     })
   );
@@ -190,10 +195,27 @@ if (process.env.MONGO_URL) {
       cookie: {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: COOKIE_SECURE,
       },
     })
   );
+}
+
+// Optional debugging middleware for sessions. Enable by setting DEBUG_SESSION=true
+if (process.env.DEBUG_SESSION === 'true') {
+  app.use((req, res, next) => {
+    console.log('--- Session Debug Start ---');
+    console.log('URL:', req.method, req.originalUrl);
+    console.log('Cookies header:', req.headers.cookie);
+    console.log('SessionID:', req.sessionID);
+    try {
+      console.log('Session content:', JSON.stringify(req.session));
+    } catch (err) {
+      console.log('Session content (non-serializable):', req.session);
+    }
+    console.log('--- Session Debug End ---');
+    next();
+  });
 }
 
 // Middleware to expose user object and models to views
@@ -263,6 +285,9 @@ app.post('/login', (req, res) => {
       });
     }
     console.log('Session saved, redirecting to home');
+    // Debug: show Set-Cookie header if present
+    const setCookie = res.getHeader && res.getHeader('Set-Cookie');
+    console.log('Set-Cookie header after save:', setCookie);
     res.redirect('/');
   });
 });
