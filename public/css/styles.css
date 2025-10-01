@@ -25,6 +25,20 @@
   --radius-xl: 1rem;
 }
 
+/* Dark theme variables */
+:root.dark {
+  --primary-color: #7c3aed;
+  --secondary-color: #06b6d4;
+  --bg-primary: #0b1220;
+  --bg-secondary: #0f1724;
+  --bg-tertiary: #111827;
+  --text-primary: #e6eef8;
+  --text-secondary: #9aa6b2;
+  --text-tertiary: #7b8a95;
+  --border-color: #1f2937;
+  --border-color-dark: #111827;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -304,7 +318,7 @@ body {
   border: 2px solid var(--border-color);
   border-radius: var(--radius-lg);
   background: var(--bg-secondary);
-  height: 500px;
+  height: 420px; /* slightly smaller */
   overflow-y: auto;
   padding: 1.5rem;
   margin-bottom: 1.5rem;

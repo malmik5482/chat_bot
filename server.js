@@ -74,63 +74,64 @@ const MODELS = [
 ];
 
 // Function to call the mlvoca API
+// Function to call the LLM via OpenRouter (https://openrouter.ai)
+// Uses process.env.OPENROUTERS_API_KEY or falls back to provided key.
+const OPENROUTERS_API_KEY = process.env.OPENROUTERS_API_KEY || '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';
+
 function callLLM(prompt, model) {
-  const data = JSON.stringify({
-    model,
-    prompt,
-    stream: false
-  });
-
-  const options = {
-    hostname: 'mlvoca.com',
-    path: '/api/generate',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(data)
-    },
-    timeout: 60000
-  };
-
   return new Promise((resolve, reject) => {
-    const req = https.request(options, res => {
-      let body = '';
-      
-      res.on('data', chunk => {
-        body += chunk;
+    try {
+      const payload = JSON.stringify({
+        model: model || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7
       });
-      
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(body);
-          if (json.response && typeof json.response === 'string') {
-            resolve(json.response);
-          } else if (json.error) {
-            reject(new Error(json.error));
-          } else {
-            resolve(body);
+
+      const options = {
+        hostname: 'api.openrouter.ai',
+        path: '/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+          'Authorization': `Bearer ${OPENROUTERS_API_KEY}`
+        },
+        timeout: 60000
+      };
+
+      const req = https.request(options, res => {
+        let body = '';
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => {
+          if (!body) return reject(new Error('Empty response from LLM'));
+          try {
+            const json = JSON.parse(body);
+            // try chat completion shape
+            if (json.choices && json.choices.length && json.choices[0].message) {
+              return resolve(json.choices[0].message.content);
+            }
+            // try safety: text or response fields
+            if (json.output) return resolve(json.output);
+            if (typeof json === 'string') return resolve(json);
+            return resolve(JSON.stringify(json));
+          } catch (err) {
+            return reject(new Error('Failed to parse LLM response: ' + err.message));
           }
-        } catch (err) {
-          if (body.trim()) {
-            resolve(body);
-          } else {
-            reject(new Error('Empty response from API'));
-          }
-        }
+        });
       });
-    });
 
-    req.on('error', err => {
-      reject(new Error(`API request failed: ${err.message}`));
-    });
+      req.on('error', err => reject(new Error('LLM request error: ' + err.message)));
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('LLM request timeout'));
+      });
 
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('API request timeout'));
-    });
-
-    req.write(data);
-    req.end();
+      req.write(payload);
+      req.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
