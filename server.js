@@ -151,9 +151,12 @@ app.use((req, res, next) => {
 });
 
 // Route: home page / chat interface
+// Always return HTTP 200 on root.  If the user is not logged in then
+// render the login page instead of performing a redirect; this avoids
+// Timeweb’s health‑check failing on a 302 status code.
 app.get('/', (req, res) => {
   if (!req.session.userPhone) {
-    return res.redirect('/login');
+    return res.render('login', { title: 'Log In' });
   }
   res.render('index', { title: 'Home' });
 });
@@ -260,6 +263,9 @@ app.post('/generate', async (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// Bind to all network interfaces so the app is reachable from outside the
+// container.  On Node.js this is the default if no host is specified,
+// but we pass 0.0.0.0 explicitly for clarity.
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });
