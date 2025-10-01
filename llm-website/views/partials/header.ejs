@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== 'undefined' ? title + ' | LLM Playground' : 'LLM Playground' %></title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="logo">LLM Playground</a>
+      <nav>
+        <% if (currentUser) { %>
+          <a href="/">Home</a>
+          <a href="/subscribe">Subscription</a>
+          <a href="/logout">Log out</a>
+        <% } else { %>
+          <a href="/login">Log in</a>
+          <a href="/register">Register</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success"><%= success %></div>
+    <% } %>

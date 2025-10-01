@@ -1,0 +1,12 @@
+<%- include('partials/header', { title: 'Log In' }) %>
+
+<section class="auth-container">
+  <h1>Log In</h1>
+  <form action="/login" method="post" class="auth-form">
+    <label for="phone">Phone Number</label>
+    <input type="tel" name="phone" id="phone" placeholder="e.g. +1234567890" required />
+    <button type="submit">Continue</button>
+  </form>
+</section>
+
+<%- include('partials/footer') %>

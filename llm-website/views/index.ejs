@@ -1,0 +1,29 @@
+<%- include('partials/header', { title: 'Home' }) %>
+
+<section class="chat-container">
+  <h1>Welcome, <%= currentUser.phone %></h1>
+  <p>Select a model and start a conversation:</p>
+  <div class="chat-controls">
+    <label for="modelSelect">Model:</label>
+    <select id="modelSelect">
+      <% models.forEach(function(m) { %>
+        <% if (m.premium && !currentUser.subscribed) { %>
+          <option value="<%= m.id %>" disabled><%= m.name %> (Subscribe)</option>
+        <% } else { %>
+          <option value="<%= m.id %>"><%= m.name %><% if (m.premium) { %> (Premium)<% } %></option>
+        <% } %>
+      <% }); %>
+    </select>
+  </div>
+  <div id="chatWindow" class="chat-window">
+    <div id="messages"></div>
+  </div>
+  <div class="chat-input">
+    <textarea id="promptInput" rows="3" placeholder="Type your message..."></textarea>
+    <button id="sendBtn">Send</button>
+  </div>
+</section>
+
+<script src="/static/js/chat.js"></script>
+
+<%- include('partials/footer') %>

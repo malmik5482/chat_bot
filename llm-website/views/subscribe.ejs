@@ -1,0 +1,19 @@
+<%- include('partials/header', { title: 'Subscription' }) %>
+
+<section class="subscription-container">
+  <h1>Subscription</h1>
+  <% if (currentUser.subscribed) { %>
+    <p>Your subscription is active. You can access premium models.</p>
+    <form action="/subscribe" method="post">
+      <button type="submit">Cancel Subscription</button>
+    </form>
+  <% } else { %>
+    <p>Activate your subscription to unlock premium models. The price is 100 рублей per month.</p>
+    <form action="/subscribe" method="post">
+      <button type="submit">Activate Subscription</button>
+    </form>
+  <% } %>
+  <p class="note">Note: Payment integration is not yet configured; clicking will simply toggle your subscription status.</p>
+</section>
+
+<%- include('partials/footer') %>
