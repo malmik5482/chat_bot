@@ -10,15 +10,21 @@
 <body>
   <header class="site-header">
     <div class="container">
-      <a href="/" class="logo">LLM Playground</a>
+      <a href="/" class="logo">🤖 LLM Playground</a>
       <nav>
         <% if (currentUser) { %>
-          <a href="/">Home</a>
-          <a href="/subscribe">Subscription</a>
-          <a href="/logout">Log out</a>
+          <a href="/">💬 Chat</a>
+          <a href="/subscribe">
+            <% if (currentUser.subscribed) { %>
+              💎 Premium
+            <% } else { %>
+              ⭐ Upgrade
+            <% } %>
+          </a>
+          <a href="/logout">🚪 Logout</a>
         <% } else { %>
-          <a href="/login">Log in</a>
-          <a href="/register">Register</a>
+          <a href="/login">🔐 Log in</a>
+          <a href="/register">✨ Register</a>
         <% } %>
       </nav>
     </div>

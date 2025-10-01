@@ -1,12 +1,28 @@
 <%- include('partials/header', { title: 'Log In' }) %>
 
 <section class="auth-container">
-  <h1>Log In</h1>
+  <h1>🔐 Log In</h1>
+  <p style="text-align: center; color: #6b7280; margin-bottom: 1.5rem;">
+    Enter your phone number to continue
+  </p>
+  
   <form action="/login" method="post" class="auth-form">
     <label for="phone">Phone Number</label>
-    <input type="tel" name="phone" id="phone" placeholder="e.g. +1234567890" required />
+    <input 
+      type="tel" 
+      name="phone" 
+      id="phone" 
+      placeholder="e.g. +1234567890" 
+      required 
+      autofocus
+    />
     <button type="submit">Continue</button>
   </form>
+  
+  <p style="text-align: center; margin-top: 1.5rem; color: #6b7280; font-size: 0.875rem;">
+    Don't have an account? 
+    <a href="/register" style="color: #6366f1; font-weight: 600;">Register here</a>
+  </p>
 </section>
 
 <%- include('partials/footer') %>

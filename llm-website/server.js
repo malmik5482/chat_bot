@@ -17,13 +17,16 @@ function loadUsers() {
     const data = fs.readFileSync(USERS_FILE, 'utf8');
     return JSON.parse(data);
   } catch (err) {
-    // File might not exist yet
     return [];
   }
 }
 
 function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save users:', err);
+  }
 }
 
 function findUserByPhone(phone) {
@@ -52,25 +55,23 @@ function updateUser(user) {
   }
 }
 
-// Define models available on the site. The `premium` flag indicates if
-// subscription is required to use the model.
+// Define models available on the site
 const MODELS = [
   {
     id: 'tinyllama',
     name: 'TinyLlama',
-    description: 'A lightweight language model suitable for quick tasks.',
+    description: 'Fast and efficient model for everyday tasks',
     premium: false
   },
   {
     id: 'deepseek-r1:1.5b',
-    name: 'DeepSeek R1 (1.5b)',
-    description: 'A more capable model with better reasoning abilities.',
+    name: 'DeepSeek R1',
+    description: 'Advanced reasoning capabilities for complex queries',
     premium: true
   }
 ];
 
-// Function to call the mlvoca API. Accepts a prompt and a model ID
-// and returns a Promise that resolves with the model response string.
+// Function to call the mlvoca API
 function callLLM(prompt, model) {
   const data = JSON.stringify({
     model,
@@ -85,31 +86,47 @@ function callLLM(prompt, model) {
     headers: {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(data)
-    }
+    },
+    timeout: 60000
   };
 
   return new Promise((resolve, reject) => {
     const req = https.request(options, res => {
       let body = '';
+      
       res.on('data', chunk => {
         body += chunk;
       });
+      
       res.on('end', () => {
         try {
           const json = JSON.parse(body);
-          // The API returns an object with a 'response' field
-          if (typeof json.response === 'string') {
+          if (json.response && typeof json.response === 'string') {
             resolve(json.response);
+          } else if (json.error) {
+            reject(new Error(json.error));
           } else {
             resolve(body);
           }
         } catch (err) {
-          // If JSON parsing fails, return raw body
-          resolve(body);
+          if (body.trim()) {
+            resolve(body);
+          } else {
+            reject(new Error('Empty response from API'));
+          }
         }
       });
     });
-    req.on('error', err => reject(err));
+
+    req.on('error', err => {
+      reject(new Error(`API request failed: ${err.message}`));
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('API request timeout'));
+    });
+
     req.write(data);
     req.end();
   });
@@ -132,9 +149,14 @@ app.use(bodyParser.json());
 // Session middleware
 app.use(
   session({
-    secret: 'llm-site-secret',
+    secret: process.env.SESSION_SECRET || 'llm-site-secret-change-in-production',
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+    }
   })
 );
 
@@ -153,7 +175,7 @@ app.use((req, res, next) => {
 // Route: home page / chat interface
 app.get('/', (req, res) => {
   if (!req.session.userPhone) {
-    return res.redirect('/login');
+    return res.render('login', { title: 'Log In', error: null });
   }
   res.render('index', { title: 'Home' });
 });
@@ -163,20 +185,31 @@ app.get('/login', (req, res) => {
   if (req.session.userPhone) {
     return res.redirect('/');
   }
-  res.render('login', { title: 'Log In' });
+  res.render('login', { title: 'Log In', error: null });
 });
 
 // Handle login
 app.post('/login', (req, res) => {
   const phone = (req.body.phone || '').trim();
   if (!phone) {
-    return res.render('login', { title: 'Log In', error: 'Please enter a phone number.' });
+    return res.render('login', { 
+      title: 'Log In', 
+      error: 'Please enter a phone number.' 
+    });
   }
+  
+  if (phone.length < 10) {
+    return res.render('login', { 
+      title: 'Log In', 
+      error: 'Please enter a valid phone number.' 
+    });
+  }
+  
   const user = findUserByPhone(phone);
   if (!user) {
-    // If user does not exist, redirect to register with phone prefilled
     return res.redirect(`/register?phone=${encodeURIComponent(phone)}`);
   }
+  
   req.session.userPhone = user.phone;
   res.redirect('/');
 });
@@ -187,19 +220,42 @@ app.get('/register', (req, res) => {
     return res.redirect('/');
   }
   const prefillPhone = req.query.phone || '';
-  res.render('register', { title: 'Register', prefillPhone });
+  res.render('register', { 
+    title: 'Register', 
+    prefillPhone,
+    error: null 
+  });
 });
 
 // Handle registration
 app.post('/register', (req, res) => {
   const phone = (req.body.phone || '').trim();
+  
   if (!phone) {
-    return res.render('register', { title: 'Register', prefillPhone: '', error: 'Please enter a phone number.' });
+    return res.render('register', { 
+      title: 'Register', 
+      prefillPhone: '', 
+      error: 'Please enter a phone number.' 
+    });
   }
+  
+  if (phone.length < 10) {
+    return res.render('register', { 
+      title: 'Register', 
+      prefillPhone: phone, 
+      error: 'Please enter a valid phone number (at least 10 digits).' 
+    });
+  }
+  
   let user = findUserByPhone(phone);
   if (user) {
-    return res.render('register', { title: 'Register', prefillPhone: phone, error: 'User already exists. Please log in.' });
+    return res.render('register', { 
+      title: 'Register', 
+      prefillPhone: phone, 
+      error: 'User already exists. Please log in.' 
+    });
   }
+  
   user = createUser(phone);
   req.session.userPhone = user.phone;
   res.redirect('/');
@@ -210,7 +266,11 @@ app.get('/subscribe', (req, res) => {
   if (!req.session.userPhone) {
     return res.redirect('/login');
   }
-  res.render('subscribe', { title: 'Subscription' });
+  res.render('subscribe', { 
+    title: 'Subscription',
+    success: null,
+    error: null
+  });
 });
 
 // Handle subscription toggle
@@ -218,11 +278,23 @@ app.post('/subscribe', (req, res) => {
   if (!req.session.userPhone) {
     return res.redirect('/login');
   }
+  
   const user = findUserByPhone(req.session.userPhone);
   if (user) {
     user.subscribed = !user.subscribed;
     updateUser(user);
+    
+    const message = user.subscribed 
+      ? 'Subscription activated successfully!' 
+      : 'Subscription cancelled.';
+    
+    return res.render('subscribe', { 
+      title: 'Subscription',
+      success: message,
+      error: null
+    });
   }
+  
   res.redirect('/subscribe');
 });
 
@@ -236,30 +308,64 @@ app.get('/logout', (req, res) => {
 // Endpoint for generating responses
 app.post('/generate', async (req, res) => {
   if (!req.session.userPhone) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ 
+      error: 'Unauthorized. Please log in.' 
+    });
   }
+  
   const { prompt, model } = req.body;
+  
   if (!prompt || !model) {
-    return res.status(400).json({ error: 'Missing prompt or model' });
+    return res.status(400).json({ 
+      error: 'Missing prompt or model selection.' 
+    });
   }
+  
+  if (prompt.length > 5000) {
+    return res.status(400).json({ 
+      error: 'Prompt is too long. Please limit to 5000 characters.' 
+    });
+  }
+  
   const selected = MODELS.find(m => m.id === model);
   if (!selected) {
-    return res.status(400).json({ error: 'Unknown model' });
+    return res.status(400).json({ 
+      error: 'Unknown model selected.' 
+    });
   }
+  
   const user = findUserByPhone(req.session.userPhone);
-  if (selected.premium && !user.subscribed) {
-    return res.status(403).json({ error: 'Model requires subscription' });
+  if (!user) {
+    return res.status(401).json({ 
+      error: 'User not found. Please log in again.' 
+    });
   }
+  
+  if (selected.premium && !user.subscribed) {
+    return res.status(403).json({ 
+      error: 'This model requires an active subscription. Please upgrade your account.' 
+    });
+  }
+  
   try {
     const reply = await callLLM(prompt, model);
     res.json({ response: reply });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to generate response', details: err.message });
+    console.error('LLM API Error:', err.message);
+    res.status(500).json({ 
+      error: 'Failed to generate response. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });

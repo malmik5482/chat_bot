@@ -1,19 +1,64 @@
 <%- include('partials/header', { title: 'Subscription' }) %>
 
 <section class="subscription-container">
-  <h1>Subscription</h1>
+  <h1>💎 Premium Subscription</h1>
+  
   <% if (currentUser.subscribed) { %>
-    <p>Your subscription is active. You can access premium models.</p>
+    <div class="subscription-status active">
+      ✓ Active Subscription
+    </div>
+    <p style="margin-bottom: 1.5rem;">
+      Your subscription is active! You have access to all premium models including advanced AI capabilities.
+    </p>
+    
+    <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+      <h3 style="margin-bottom: 0.5rem; font-size: 1rem;">Premium Benefits:</h3>
+      <ul style="margin-left: 1.5rem; color: #4b5563;">
+        <li>Access to DeepSeek R1 model</li>
+        <li>Better reasoning capabilities</li>
+        <li>More accurate responses</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+    
     <form action="/subscribe" method="post">
-      <button type="submit">Cancel Subscription</button>
+      <button type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+        Cancel Subscription
+      </button>
     </form>
   <% } else { %>
-    <p>Activate your subscription to unlock premium models. The price is 100 рублей per month.</p>
+    <div class="subscription-status inactive">
+      ⚠ No Active Subscription
+    </div>
+    <p style="margin-bottom: 1.5rem;">
+      Upgrade to premium to unlock advanced AI models and enhanced features.
+    </p>
+    
+    <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+      <h3 style="margin-bottom: 0.5rem; font-size: 1rem;">What you'll get:</h3>
+      <ul style="margin-left: 1.5rem; color: #4b5563;">
+        <li>✓ Access to DeepSeek R1 model</li>
+        <li>✓ Better reasoning capabilities</li>
+        <li>✓ More accurate responses</li>
+        <li>✓ Priority support</li>
+      </ul>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <p style="font-size: 2rem; font-weight: 700; color: #6366f1;">100 ₽</p>
+      <p style="color: #6b7280; font-size: 0.875rem;">per month</p>
+    </div>
+    
     <form action="/subscribe" method="post">
-      <button type="submit">Activate Subscription</button>
+      <button type="submit">
+        Activate Premium Subscription
+      </button>
     </form>
   <% } %>
-  <p class="note">Note: Payment integration is not yet configured; clicking will simply toggle your subscription status.</p>
+  
+  <p class="note">
+    ℹ️ Note: Payment integration is not yet configured. Clicking the button will simply toggle your subscription status for demonstration purposes.
+  </p>
 </section>
 
 <%- include('partials/footer') %>

@@ -1,26 +1,43 @@
 <%- include('partials/header', { title: 'Home' }) %>
 
 <section class="chat-container">
-  <h1>Welcome, <%= currentUser.phone %></h1>
-  <p>Select a model and start a conversation:</p>
+  <h1>👋 Welcome, <%= currentUser.phone %></h1>
+  <p>Select a model and start a conversation with AI</p>
+  
   <div class="chat-controls">
     <label for="modelSelect">Model:</label>
     <select id="modelSelect">
       <% models.forEach(function(m) { %>
         <% if (m.premium && !currentUser.subscribed) { %>
-          <option value="<%= m.id %>" disabled><%= m.name %> (Subscribe)</option>
+          <option value="<%= m.id %>" disabled><%= m.name %> 🔒 (Premium)</option>
         <% } else { %>
-          <option value="<%= m.id %>"><%= m.name %><% if (m.premium) { %> (Premium)<% } %></option>
+          <option value="<%= m.id %>"><%= m.name %><% if (m.premium) { %> ⭐<% } %></option>
         <% } %>
       <% }); %>
     </select>
   </div>
+  
   <div id="chatWindow" class="chat-window">
     <div id="messages"></div>
   </div>
+  
   <div class="chat-input">
-    <textarea id="promptInput" rows="3" placeholder="Type your message..."></textarea>
+    <textarea 
+      id="promptInput" 
+      rows="3" 
+      placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
+      maxlength="5000"
+    ></textarea>
     <button id="sendBtn">Send</button>
+  </div>
+  
+  <div style="text-align: center; margin-top: 1rem;">
+    <button 
+      id="clearBtn" 
+      style="background: linear-gradient(135deg, #ef4444, #dc2626); width: auto; padding: 0.5rem 1.5rem; font-size: 0.875rem;"
+    >
+      🗑️ Clear History
+    </button>
   </div>
 </section>
 
