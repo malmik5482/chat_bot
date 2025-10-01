@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const OpenAI = require('openai');
+const MongoStore = require('connect-mongo');
 
 // Path to users JSON file
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
@@ -132,6 +134,12 @@ function callLLM(prompt, model) {
   });
 }
 
+// Initialize OpenAI client with Cody API
+const client = new OpenAI({
+  baseURL: 'https://cody.su/api/v1',
+  apiKey: 'cody-...', // Replace with your actual API key
+});
+
 // Create Express app
 const app = express();
 
@@ -147,18 +155,40 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // Session middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'llm-site-secret-change-in-production',
-    resave: true,
-    saveUninitialized: true,
-    cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      secure: false
-    }
-  })
-);
+// Configure session store: prefer MongoDB when MONGO_URL is set, otherwise
+// fall back to the default MemoryStore with a clear warning for production.
+if (process.env.MONGO_URL) {
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'llm-site-secret-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URL,
+        collectionName: 'sessions',
+      }),
+      cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+      },
+    })
+  );
+} else {
+  console.warn('MONGO_URL not set — using MemoryStore for sessions. This is NOT recommended for production.');
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'llm-site-secret-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+      },
+    })
+  );
+}
 
 // Middleware to expose user object and models to views
 app.use((req, res, next) => {
@@ -389,6 +419,38 @@ app.post('/generate', async (req, res) => {
       error: 'Не удалось сгенерировать ответ. Пожалуйста, попробуйте снова.',
       details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
+  }
+});
+
+// Example route to use Cody API for text completion
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4.1',
+      messages: [{ role: 'user', content: message }],
+    });
+
+    res.json({ response: completion.choices[0].message.content });
+  } catch (error) {
+    console.error('Error with Cody API:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Example route to generate an image
+app.post('/api/image', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const image = await client.images.generate({
+      model: 'FLUX.1-kontext',
+      prompt,
+    });
+
+    res.json({ image: image.data[0].b64_json });
+  } catch (error) {
+    console.error('Error with Cody API:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 

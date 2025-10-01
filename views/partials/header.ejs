@@ -13,18 +13,26 @@
       <a href="/" class="logo">🤖 LLM Playground</a>
       <nav>
         <% if (currentUser) { %>
-          <a href="/">💬 Chat</a>
+          <a href="/">
+            💬 Чат
+          </a>
           <a href="/subscribe">
             <% if (currentUser.subscribed) { %>
-              💎 Premium
+              💎 Премиум
             <% } else { %>
-              ⭐ Upgrade
+              ⭐ Улучшить
             <% } %>
           </a>
-          <a href="/logout">🚪 Logout</a>
+          <a href="/logout">
+            🔒 Выйти
+          </a>
         <% } else { %>
-          <a href="/login">🔐 Log in</a>
-          <a href="/register">✨ Register</a>
+          <a href="/login">
+            🔑 Войти
+          </a>
+          <a href="/register">
+            ✨ Регистрация
+          </a>
         <% } %>
       </nav>
     </div>
