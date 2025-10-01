@@ -60,13 +60,13 @@ const MODELS = [
   {
     id: 'tinyllama',
     name: 'TinyLlama',
-    description: 'Fast and efficient model for everyday tasks',
+    description: 'Быстрая и эффективная модель для повседневных задач',
     premium: false
   },
   {
     id: 'deepseek-r1:1.5b',
     name: 'DeepSeek R1',
-    description: 'Advanced reasoning capabilities for complex queries',
+    description: 'Продвинутые возможности для сложных запросов',
     premium: true
   }
 ];
@@ -146,16 +146,16 @@ app.use('/static', express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Session middleware
+// Session middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'llm-site-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'
+      secure: false
     }
   })
 );
@@ -191,27 +191,44 @@ app.get('/login', (req, res) => {
 // Handle login
 app.post('/login', (req, res) => {
   const phone = (req.body.phone || '').trim();
+  
+  console.log('Login attempt:', phone); // Для отладки
+  
   if (!phone) {
     return res.render('login', { 
       title: 'Log In', 
-      error: 'Please enter a phone number.' 
+      error: 'Пожалуйста, введите номер телефона.' 
     });
   }
   
   if (phone.length < 10) {
     return res.render('login', { 
       title: 'Log In', 
-      error: 'Please enter a valid phone number.' 
+      error: 'Пожалуйста, введите корректный номер телефона.' 
     });
   }
   
   const user = findUserByPhone(phone);
   if (!user) {
+    console.log('User not found, redirecting to register');
     return res.redirect(`/register?phone=${encodeURIComponent(phone)}`);
   }
   
+  console.log('User found, setting session');
   req.session.userPhone = user.phone;
-  res.redirect('/');
+  
+  // Сохраняем сессию явно перед редиректом
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.render('login', { 
+        title: 'Log In', 
+        error: 'Ошибка сохранения сессии. Попробуйте снова.' 
+      });
+    }
+    console.log('Session saved, redirecting to home');
+    res.redirect('/');
+  });
 });
 
 // Registration page
@@ -231,11 +248,13 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res) => {
   const phone = (req.body.phone || '').trim();
   
+  console.log('Registration attempt:', phone); // Для отладки
+  
   if (!phone) {
     return res.render('register', { 
       title: 'Register', 
       prefillPhone: '', 
-      error: 'Please enter a phone number.' 
+      error: 'Пожалуйста, введите номер телефона.' 
     });
   }
   
@@ -243,7 +262,7 @@ app.post('/register', (req, res) => {
     return res.render('register', { 
       title: 'Register', 
       prefillPhone: phone, 
-      error: 'Please enter a valid phone number (at least 10 digits).' 
+      error: 'Пожалуйста, введите корректный номер телефона (минимум 10 цифр).' 
     });
   }
   
@@ -252,13 +271,27 @@ app.post('/register', (req, res) => {
     return res.render('register', { 
       title: 'Register', 
       prefillPhone: phone, 
-      error: 'User already exists. Please log in.' 
+      error: 'Пользователь с таким номером уже существует. Пожалуйста, войдите.' 
     });
   }
   
+  console.log('Creating new user');
   user = createUser(phone);
   req.session.userPhone = user.phone;
-  res.redirect('/');
+  
+  // Сохраняем сессию явно перед редиректом
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.render('register', { 
+        title: 'Register', 
+        prefillPhone: phone,
+        error: 'Ошибка сохранения сессии. Попробуйте снова.' 
+      });
+    }
+    console.log('Session saved, redirecting to home');
+    res.redirect('/');
+  });
 });
 
 // Subscription page
@@ -285,8 +318,8 @@ app.post('/subscribe', (req, res) => {
     updateUser(user);
     
     const message = user.subscribed 
-      ? 'Subscription activated successfully!' 
-      : 'Subscription cancelled.';
+      ? 'Подписка успешно активирована!' 
+      : 'Подписка отменена.';
     
     return res.render('subscribe', { 
       title: 'Subscription',
@@ -309,7 +342,7 @@ app.get('/logout', (req, res) => {
 app.post('/generate', async (req, res) => {
   if (!req.session.userPhone) {
     return res.status(401).json({ 
-      error: 'Unauthorized. Please log in.' 
+      error: 'Не авторизован. Пожалуйста, войдите.' 
     });
   }
   
@@ -317,33 +350,33 @@ app.post('/generate', async (req, res) => {
   
   if (!prompt || !model) {
     return res.status(400).json({ 
-      error: 'Missing prompt or model selection.' 
+      error: 'Отсутствует запрос или выбор модели.' 
     });
   }
   
   if (prompt.length > 5000) {
     return res.status(400).json({ 
-      error: 'Prompt is too long. Please limit to 5000 characters.' 
+      error: 'Запрос слишком длинный. Пожалуйста, ограничьте до 5000 символов.' 
     });
   }
   
   const selected = MODELS.find(m => m.id === model);
   if (!selected) {
     return res.status(400).json({ 
-      error: 'Unknown model selected.' 
+      error: 'Неизвестная модель.' 
     });
   }
   
   const user = findUserByPhone(req.session.userPhone);
   if (!user) {
     return res.status(401).json({ 
-      error: 'User not found. Please log in again.' 
+      error: 'Пользователь не найден. Пожалуйста, войдите снова.' 
     });
   }
   
   if (selected.premium && !user.subscribed) {
     return res.status(403).json({ 
-      error: 'This model requires an active subscription. Please upgrade your account.' 
+      error: 'Эта модель требует активную подписку. Пожалуйста, обновите свой аккаунт.' 
     });
   }
   
@@ -353,7 +386,7 @@ app.post('/generate', async (req, res) => {
   } catch (err) {
     console.error('LLM API Error:', err.message);
     res.status(500).json({ 
-      error: 'Failed to generate response. Please try again.',
+      error: 'Не удалось сгенерировать ответ. Пожалуйста, попробуйте снова.',
       details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
@@ -367,5 +400,5 @@ app.get('/health', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });

@@ -1,28 +1,29 @@
 <%- include('partials/header', { title: 'Register' }) %>
 
 <section class="auth-container">
-  <h1>✨ Create an Account</h1>
+  <h1>✨ Регистрация</h1>
   <p style="text-align: center; color: #6b7280; margin-bottom: 1.5rem;">
-    Join us and start chatting with AI models
+    Присоединяйтесь и начните общение с AI
   </p>
   
   <form action="/register" method="post" class="auth-form">
-    <label for="phone">Phone Number</label>
+    <label for="phone">Номер телефона</label>
     <input 
-      type="tel" 
+      type="text" 
       name="phone" 
       id="phone" 
-      placeholder="e.g. +1234567890" 
+      placeholder="+79001234567" 
       value="<%= typeof prefillPhone !== 'undefined' ? prefillPhone : '' %>" 
       required 
       autofocus
+      autocomplete="off"
     />
-    <button type="submit">Create Account</button>
+    <button type="submit">Создать аккаунт</button>
   </form>
   
   <p style="text-align: center; margin-top: 1.5rem; color: #6b7280; font-size: 0.875rem;">
-    Already have an account? 
-    <a href="/login" style="color: #6366f1; font-weight: 600;">Log in here</a>
+    Уже есть аккаунт? 
+    <a href="/login" style="color: #6366f1; font-weight: 600;">Войдите</a>
   </p>
 </section>
 
