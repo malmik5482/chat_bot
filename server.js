@@ -143,6 +143,12 @@ const client = new OpenAI({
 // Create Express app
 const app = express();
 
+// If the app runs behind a proxy (Heroku, nginx, etc.), enable trust proxy
+// so express-session can set secure cookies correctly when using HTTPS.
+if (process.env.TRUST_PROXY || process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Set view engine to EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

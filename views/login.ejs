@@ -9,13 +9,15 @@
   <form action="/login" method="post" class="auth-form">
     <label for="phone">Номер телефона</label>
     <input 
-      type="text" 
+      type="tel" 
+      inputmode="tel"
       name="phone" 
       id="phone" 
       placeholder="+79001234567" 
       required 
       autofocus
-      autocomplete="off"
+      autocomplete="tel"
+      class="phone-input"
     />
     <button type="submit">Продолжить</button>
   </form>

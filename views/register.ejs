@@ -9,14 +9,16 @@
   <form action="/register" method="post" class="auth-form">
     <label for="phone">Номер телефона</label>
     <input 
-      type="text" 
+      type="tel" 
+      inputmode="tel"
       name="phone" 
       id="phone" 
       placeholder="+79001234567" 
       value="<%= typeof prefillPhone !== 'undefined' ? prefillPhone : '' %>" 
       required 
       autofocus
-      autocomplete="off"
+      autocomplete="tel"
+      class="phone-input"
     />
     <button type="submit">Создать аккаунт</button>
   </form>

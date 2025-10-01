@@ -191,7 +191,8 @@ body {
   letter-spacing: 0.05em;
 }
 
-.auth-form input[type="tel"] {
+.auth-form input[type="tel"],
+.auth-form .phone-input {
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid var(--border-color);
